@@ -1,0 +1,819 @@
+/* ════════════════════════════════════════════════════════════════
+   Serie A Scout Index — i18n module (vanilla JS, no deps)
+   ──────────────────────────────────────────────────────────────
+   - Italian (default) + English
+   - Persistence in localStorage("lang")
+   - Auto-detect browser lang on first visit
+   - Lang switcher mounted in [data-i18n-switcher] slot (each nav has one)
+   - Live re-render: no page reload on switch
+   - Attributes supported:
+       data-i18n="key"               → textContent
+       data-i18n-html="key"          → innerHTML (use solo se la stringa
+                                        contiene HTML controllato)
+       data-i18n-placeholder="key"   → input/textarea placeholder
+       data-i18n-title="key"         → element.title (tooltip)
+       data-i18n-aria-label="key"    → aria-label
+   ════════════════════════════════════════════════════════════════ */
+(function () {
+  "use strict";
+
+  /* ── DIZIONARIO ──────────────────────────────────────────── */
+  const I18N = {
+    it: {
+      /* nav comune */
+      nav_home:            "Homepage",
+      nav_dashboard:       "Dashboard",
+      nav_validation:      "Validazione",
+      nav_methodology:     "Metodologia",
+      nav_back_homepage:   "Torna alla Homepage",
+      nav_back_ranking:    "Torna alla classifica",
+      nav_back:            "Indietro",
+      nav_forward:         "Avanti",
+      nav_lang_label:      "Lingua",
+
+      /* azioni / pulsanti comuni */
+      btn_search:          "Cerca",
+      btn_close:           "Chiudi",
+      btn_compare:         "Confronto",
+      btn_methodology:     "Metodologia",
+      btn_explore:         "Esplora dashboard",
+      btn_see_validation:  "Vedi validazione",
+      btn_read_method:     "Leggi metodologia",
+
+      /* placeholder / messaggi */
+      ph_search_player:    "Cerca giocatore…",
+      msg_loading:         "Caricamento…",
+      msg_no_data:         "Nessun dato disponibile",
+      msg_no_results:      "Nessun risultato",
+
+      /* termini dominio (uniformati) */
+      term_players:        "Giocatori",
+      term_teams:          "Squadre",
+      term_ranking:        "Classifica",
+      term_statistics:     "Statistiche",
+      term_minutes:        "Minuti",
+      term_role:           "Ruolo",
+      term_team:           "Squadra",
+      term_player:         "Giocatore",
+      term_home:           "Casa",
+      term_away:           "Trasferta",
+      term_vs_top6:        "vs Top 6",
+      term_vs_strong:      "Difese Solide",
+      term_total:          "Totale",
+
+      /* HOMEPAGE */
+      hp_eyebrow:          "Analisi Calcio · Serie A 25/26",
+      hp_tagline:          "Modello Data-Driven per il Ranking dei Giocatori",
+      hp_intro:            "Un modello per valutare e ordinare i giocatori della Serie A usando metriche di performance indipendenti — corrette per la difficoltà degli avversari e stabilizzate con Bayesian Shrinkage. È un indice descrittivo: ordina, non predice. Come ci sono arrivato, e dove non regge, è tutto nella pagina di validazione.",
+      hp_bullet_1:         "<strong>7 dimensioni indipendenti</strong> — output, buildup, centralità, boost, consistenza (su IQR), finishing e forma recente, standardizzate con <strong>z-score winsorizzati</strong>. I 5 modulatori scout (AII, PRI, stabilità, trend forma, EMI) entrano nel TPI Pro",
+      hp_bullet_2:         "<strong>381 giocatori · 38 giornate · 5 contesti</strong> — Totale, Casa, Trasferta, vs Top 6, vs Difese Solide",
+      // Niente conteggio dei test qui dentro: il numero lo calcola parte3 e vive
+      // solo in validazione.html. Scriverlo a mano lo faceva divergere in silenzio.
+      hp_bullet_3:         "<strong>Messo alla prova, anche dove perde</strong> — ogni verifica con intervalli di confidenza bootstrap al 95%, compreso il confronto out-of-sample con baseline banali: contro l'output grezzo per-90 il TPI non vince",
+      hp_tag_xg:           "xG · xA · pesatura SOS",
+      hp_tag_bayes:        "Bayesian Shrinkage",
+      hp_tag_pro:          "TPI Pro — AII + PRI",
+      hp_tag_validated:    "Indice descrittivo",
+      hp_whats_inside:     "Cosa c'è dentro",
+      hp_card_dash_ttl:    "Dashboard Scout",
+      hp_card_dash_body:   "Classifiche giocatori su 7 metriche, filtro squadre, confronto fino a 4 giocatori, radar TPI e analisi differenziale. Completamente responsive.",
+      hp_card_dash_lnk:    "Esplora dashboard →",
+      hp_card_val_ttl:     "Validazione statistica",
+      hp_card_val_body:    "Le verifiche riportate come sono uscite: confronto con baseline banali, calibrazione, ablation delle 7 dimensioni, predittività per ruolo, convergenza e persistenza.",
+      hp_card_val_lnk:     "Vedi validazione →",
+      hp_card_meth_ttl:    "Metodologia completa",
+      hp_card_meth_body:   "Ogni indice spiegato con formule, motivazione e grafici interattivi. Dalla pipeline dati grezzi al TPI finale — tutti i passaggi documentati.",
+      hp_card_meth_lnk:    "Leggi metodologia →",
+      hp_idx_section:      "Gli indici del sistema",
+      hp_idx_output_t:     "Output Adj / 90'",
+      hp_idx_output_s:     "(xG+xA)/min×90 pesato per SOS — corregge la forza degli avversari",
+      hp_idx_centr_t:      "Centralità Offensiva",
+      hp_idx_centr_s:      "% della produzione squadra che passa dal giocatore — con Bayesian Shrinkage",
+      hp_idx_boost_t:      "Team Boost Ratio",
+      hp_idx_boost_s:      "xG squadra CON / SENZA — quanto vale davvero per la squadra",
+      hp_idx_cons_t:       "Consistenza (basata su IQR)",
+      hp_idx_cons_s:       "1 − IQR/mediana — robusto agli outlier, bounded [0,1]",
+      hp_idx_aii_t:        "AII — Indice d'Età",
+      hp_idx_aii_s:        "Gaussiana con picco a 23 anni — premia chi sta entrando nel prime, non chi ci è già",
+      hp_idx_pri_t:        "PRI — Affidabilità Fisica",
+      hp_idx_pri_s:        "Disponibilità + infortuni + gravità — affidabilità fisica storica",
+      hp_pro_new:          "Novità — TPI Pro",
+      hp_pro_ttl:          "TPI Pro — 7 dimensioni + 5 modulatori",
+      hp_pro_body:         "Il TPI classico usa 7 dimensioni offensive (output, buildup, centralità, boost, consistenza, finishing, forma). Il TPI Pro aggiunge 5 modulatori: <strong style=\"color:var(--teal)\">Età Index (AII)</strong>, <strong style=\"color:var(--purp)\">Affidabilità Fisica (PRI)</strong>, stabilità cross-contesto, trend forma ed <strong style=\"color:var(--orng)\">EMI</strong> — con il TPI base fra il 55% e il 65% del totale a seconda della fascia d'età, per non perdere il segnale principale.",
+      hp_footer_season:    "Stagione 2025/26",
+      hp_footer_data:      "Dati: FBref (fonte Opta) · Transfermarkt · SosFanta · PazzidiFanta",
+
+      /* VALIDAZIONE */
+      val_title:           "Validazione del modello",
+      val_subtitle:        "Cinque test indipendenti per confermare che il TPI è statisticamente valido.",
+      val_pearson:         "Pearson r vs Fantacalcio",
+      val_overlap:         "Sovrapposizione Top 10",
+      val_backtest:        "Backtest predittivo",
+      val_aii_validation:  "Validazione AII",
+      val_pri_validation:  "Validazione PRI",
+      val_tpi_pro_coh:     "Coerenza TPI vs TPI Pro",
+      val_interpretation:  "Interpretazione",
+      val_limits:          "Limiti",
+      val_low:             "Basso",
+      val_consistent:      "Coerente",
+      val_notable_div:     "Divergenze notevoli",
+      val_no_data_pro:     "Nessun dato TPI Pro",
+      val_start_mysql:     "Avvia MySQL per il backtest completo",
+      val_injuries:        "Infortuni",
+      val_confidence:      "Confidence Score",
+      val_rmse:            "RMSE",
+      val_pro_players:     "Giocatori TPI Pro",
+      val_aii_players:     "Giocatori con AII",
+      val_pri_players:     "Giocatori con PRI",
+      val_ax_tpi_classic:  "TPI Classico (7 dim)",
+      val_ax_tpi_pro:      "TPI Pro (7 dim + 5 mod)",
+      val_ax_tpi_tot:      "TPI Totale",
+      val_ax_fanta:        "Voto Fantacalcio",
+      val_ax_early:        "Output/90 — Prima fase",
+      val_ax_late:         "Output/90 — Seconda fase",
+      val_ax_aii:          "AII — Età Index",
+      val_ax_pri:          "PRI — Affidabilità Fisica",
+
+      /* GUIDA */
+      guide_title:         "Guida Completa alla Metodologia",
+      guide_subtitle:      "Ogni indice, formula e scelta progettuale del Serie A Scout Index",
+      guide_chapter:       "Capitolo",
+      guide_formula:       "Formula",
+      guide_how_calc:      "Come viene calcolato",
+      guide_components:    "Componenti della formula",
+      guide_base_data:     "Dati Base",
+      guide_how_populate:  "Come popolare i dati",
+      guide_age_curve:     "Curva AII per età",
+      guide_age_age_idx:   "Age Impact Index per fascia d'età",
+      guide_age_band:      "Fascia",
+      guide_aff_phys:      "Affidabilità Fisica",
+      guide_age_idx:       "Età Index",
+      guide_centrality:    "Centralità Offensiva",
+      guide_consistency:   "Consistenza",
+      guide_form_ewma:     "Form EWMA",
+      guide_big_match:     "Big match",
+      guide_finisher:      "Finalizzatore sopra media",
+
+      /* DASHBOARD */
+      dash_title:          "Dashboard Scout",
+      dash_filter_team:    "Squadra",
+      dash_filter_role:    "Ruolo",
+      dash_all_teams:      "Tutte",
+      dash_all_roles:      "Tutti",
+      dash_role_gk:        "Portiere",
+      dash_role_def:       "Difensore",
+      dash_role_mid:       "Centrocampista",
+      dash_role_fwd:       "Attaccante",
+      dash_role_gk_s:      "POR",
+      dash_role_def_s:     "DIF",
+      dash_role_mid_s:     "CEN",
+      dash_role_fwd_s:     "ATT",
+      dash_leaderboard:    "Classifica",
+      dash_compare:        "Confronto",
+      dash_compare_pool:   "Pool di confronto",
+      dash_compare_empty:  "Aggiungi giocatori al confronto",
+      dash_pick_player:    "Seleziona giocatore",
+      dash_roster:         "Resto della rosa",
+      dash_insufficient:   "minuti insufficienti per TPI",
+      dash_diff_modal:     "Δ Differenziale",
+      dash_radar:          "Radar TPI",
+      dash_overview:       "Panoramica",
+      dash_conversion:     "Conversione",
+      dash_trend:          "Trend",
+      dash_show_pro:       "Mostra TPI Pro",
+      dash_hide_pro:       "Nascondi TPI Pro",
+      dash_methodology:    "Metodologia",
+      dash_kpi_xg90:       "xG / 90'",
+      dash_kpi_xa90:       "xA / 90'",
+      dash_kpi_goal90:     "Gol / 90'",
+      dash_kpi_sos:        "Difficoltà avversari",
+      dash_ctx_solo_totale: "Disponibile per i primi cento pubblicati",
+      dash_img:            "Immagine",
+      dash_img_tip:        "Scarica il confronto come immagine, da mandare a qualcuno",
+      dash_chip_attese:    "Sopra le attese",
+      dash_m_attese:       "Sopra le attese",
+      dash_attese_tip:     "Quanto rende in questa stagione rispetto alla sua base su due stagioni",
+      dash_attese_note:    "TPI di questa stagione meno quello dello stesso giocatore su due stagioni. Sopra zero: sta rendendo più di quanto la sua storia facesse aspettare. Chi non ha storico non compare: senza passato non c'è un'attesa da battere.",
+      dash_qualificati:    "giocatori qualificati",
+      dash_hero_altra:     "Questi numeri sono della stagione pubblicata; sotto stai guardando un'altra vista.",
+      dash_stag_errore:    "Non sono riuscito a caricare quella stagione: ",
+      dash_contratto:      "contratto",
+      dash_contratto_tip:  "Scadenza del contratto (Transfermarkt). Non entra nell'indice.",
+      dash_scad:           "In scadenza",
+      dash_scad_tip:       "Solo chi ha il contratto in scadenza entro dodici mesi",
+      dash_valore:         "valore",
+      dash_valore_tip:     "Valore di mercato Transfermarkt. Non entra nell'indice: la validazione lo usa come baseline da battere.",
+      dash_team_page:      "pagina della squadra",
+      dash_all:            "Tutti i qualificati",
+      dash_all_tip:        "Carica anche i qualificati oltre i primi cento: il taglio ai cento privilegia le squadre che producono di piu'",
+      dash_all_loading:    "Carico...",
+      dash_all_done:       "Tutti i qualificati",
+      dash_all_done_tip:   "Caricati tutti i qualificati. I profili completi restano per i primi cento pubblicati.",
+      dash_all_error:      "Non sono riuscito a caricare l'elenco completo: ",
+      dash_leggero:        "Arriva dall'elenco completo: ci sono punteggio, dimensioni e contesto totale, non le serie per giornata. I profili con i grafici sono i primi cento pubblicati.",
+      dash_csv_view:       "CSV",
+      dash_csv_view_tip:   "Scarica in CSV la lista che stai vedendo, con i filtri applicati",
+      dash_csv_all:        "tutti i 351",
+      dash_csv_all_tip:    "Il file completo generato dal motore: 351 giocatori, 49 colonne",
+      dash_pct_lab:        "percentile",
+      dash_pct_tip:        "Percentile: sta davanti al PC% dei TOT giocatori qualificati",
+      dash_kpi_finish:     "Finalizzazione",
+      dash_kpi_conv:       "Tasso conversione",
+      dash_compare_with:   "Confronta con",
+      dash_advantage:      "vantaggio",
+      dash_disadvantage:   "svantaggio",
+      dash_z_explain:      "Valori in z-score (σ dalla media lega).",
+      dash_winter_signing: "Acquisto invernale",
+
+      /* dashboard — chip filtro metriche */
+      dash_chip_tpi:       "TPI",
+      dash_chip_prospect:  "Giovani ★",
+      dash_chip_output:    "Output",
+      dash_chip_cen:       "Centralità",
+      dash_chip_boo:       "Boost",
+      dash_chip_con:       "Consistenza",
+      dash_chip_conv:      "G/xG",
+      dash_btn_compare:    "Confronta",
+      dash_search_np:      "Nome, squadra o ruolo…",
+      dash_filter_by_team: "Filtra per squadra",
+      /* dashboard — titoli metrica (heading leaderboard) */
+      dash_m_tpi:          "TPI Totale",
+      dash_m_prospect:     "Giovani ★ — Prospect Score",
+      dash_m_out:          "Output Offensivo Adj / 90'",
+      dash_m_cen:          "Centralità Offensiva",
+      dash_m_boo:          "Team Boost Ratio",
+      dash_m_con:          "Consistenza",
+      dash_m_conv:         "G / xG — Conversion",
+      /* dashboard — righe leaderboard / stati */
+      dash_btn_profile:    "Profilo",
+      dash_btn_diff:       "Confronta con…",
+      dash_no_filter_data: "Nessun dato disponibile per questo filtro",
+      dash_roster_note:    "giocatori (minuti insufficienti per TPI)",
+      dash_off_profile:    "Profilo offensivo",
+      dash_filter_hot:     "In forma",
+      dash_filter_cold:    "In calo",
+      dash_filter_form:    "Filtra per forma:",
+      dash_form:           "Forma",
+      dash_form_hot:       "in forma",
+      dash_form_cold:      "in calo",
+      dash_form_stable:    "stabile",
+      dash_goals_short:    "gol",
+      dash_vs_season:      "vs stagione",
+      dash_pro_badge:      "Novità — TPI Pro",
+      dash_pro_ttl:        "TPI Pro: TPI base + 5 modulatori scout",
+      dash_pro_body:       "Il <strong>TPI classico</strong> usa 7 dimensioni offensive (output, buildup, centralità, boost, consistenza, finishing, forma recente). Il <strong>TPI Pro</strong> = 0.65·TPI + 0.10·<span style=\"color:var(--teal)\">AII scout</span> + 0.07·<span style=\"color:var(--purp)\">PRI</span> + 0.07·stabilità cross-contesto + 0.05·trend forma + 0.06·<span style=\"color:var(--orng)\">EMI</span>. L'<strong>AII scout</strong> ha picco a 23 anni (chi sta ENTRANDO nel prime, non chi ci è già). L'<strong>EMI</strong> (Early Momentum Index) misura chi performa SOPRA l'aspettativa per la sua età: discrimina tra prospetti che a 21–22 anni avrebbero AII identico — un giovane TOP (Nico Paz z+1.7) vs un giovane IN LINEA (Ferguson z+0.9).",
+      dash_role_full_POR:  "Portiere",
+      dash_role_full_DIF:  "Difensore",
+      dash_role_full_CEN:  "Centrocampista",
+      dash_role_full_ATT:  "Attaccante",
+      dash_remove_filter:  "Rimuovi filtro",
+      dash_winter_legend:  "❄ = acquisto invernale (soglia minuti ridotta)",
+      dash_meth_calc:      "📐 Metodologia e Calcoli",
+      dash_meth_sub:       "Come funziona il TPI",
+      dash_no_role_data:   "Nessun dato per questo ruolo.",
+      dash_not_analyzed:   "Non analizzati (minuti insufficienti)",
+      dash_max_compare:    "Massimo 4 giocatori.",
+      dash_prospect_note:  "Solo giocatori ≤24 anni. Score = TPI × AII (Age Impact Index). Premia chi ha alto impatto già in giovane età.",
+      dash_tab_conv:       "Goals vs xG",
+      dash_tab_trend:      "Trend xG",
+      dash_tab_radar:      "Radar",
+      dash_pro_mean6:      "0.55–0.65·TPI + modulatori, pesi per fascia d'età",
+      dash_pro_gauss:      "Gaussiana picco 23 (entrata prime) + bonus crescita",
+      dash_pro_avail:      "Disponibilità + infortuni + gravità",
+      dash_pro_dims:       "TPI · AII scout · PRI · Stabilità ctx · Trend forma · EMI",
+      dash_zdim:           "Z-score dimensioni",
+      dash_zdim_player:    "Z-score dimensioni per il giocatore selezionato (Totale)",
+      dash_meth_title:     "Metodologia e Calcoli",
+      dash_meth_intro:     "Il TPI misura l'impatto offensivo reale attraverso 7 dimensioni: qualità (output_adj), buildup, centralità, boost, consistenza, finishing e forma recente. Bayesian shrinkage con K dinamico per subentranti/poche partite; penalty disponibilità winter-aware (Malen 90% disp intatto, De Bruyne 47% penalizzato); confidence v2 a 4 fattori; SOS-weighting normalizza la difficoltà.",
+      dash_js_error:       "Errore JS:",
+      dash_players_ranked: "giocatori ordinati",
+      dash_matchdays:      "giornate",
+      dash_indep_kpis:     "KPI indipendenti",
+      dash_teams_word:     "squadre",
+      dash_players_analyzed:"giocatori analizzati",
+      dash_ctx5:           "TPI nei 5 contesti",
+      dash_goals_vs_xg_cmp:"Goals vs xG a confronto",
+      dash_zscore_off:     "Z-score offensivo",
+      dash_form_match:     "Form — xG+xA/90 per partita (EWMA α=0.3)",
+      dash_goals_vs_xg_match:"Goal vs xG per partita",
+      dash_season_cumul:   "Cumulativo stagionale",
+      dash_team_xg_gw:     "xG squadra per giornata (con / senza / difese solide)",
+      dash_dimension:      "Dimensione",
+      dash_aii_age:        "AII — Età",
+      dash_pri_phys:       "PRI — Fisico",
+      dash_zr_output:      "Output adj/90",
+      dash_zr_boost:       "Team boost",
+      dash_ov_zcap:        "0 = la media del suo ruolo. Nessun valore supera ±3: una partita fuori scala non conta il doppio.",
+      dash_ctx_graycap:    "Grigio = meno partite del minimo (dati insufficienti)",
+      dash_form_few:       "⚠ Meno di 5 partite: trend non calcolato",
+      dash_v2_req:         "⚠ Richiede data_nascita in DB (Età) e t_infortuni compilata (Affidabilità)",
+      dash_conv_insuf:     "Dati insufficienti (xG < 0.5)",
+      dash_conv_over:      "Finalizzatore sopra media",
+      dash_conv_under:     "Spreca le occasioni",
+      dash_conv_inline:    "In linea con le aspettative xG",
+      dash_conv_ratio_ttl: "Conversion Ratio G/xG",
+      dash_overperf_cap:   "Sopra la tratteggiata = sovra-performance vs xG",
+      dash_with_player:    "Con il giocatore",
+      dash_vs_strong_def:  "vs Difese Solide",
+      dash_vs_weak_def:    "vs Difese Deboli",
+      dash_matches_without:"partite senza",
+      dash_trend_caption:  "Linea tratteggiata = xG medio nelle partite senza il giocatore.",
+      dash_radar_caption:  "Ogni raggio dice quanto sta sopra o sotto la media del suo ruolo. Il bordo è il tetto: oltre ±3 non si va.",
+      dash_ch_output_match:"Output/partita",
+      dash_ch_with:        "Con",
+      dash_ch_without:     "Senza",
+      dash_ch_avg_with:    "Media con",
+      dash_ch_matchday:    "Giornata",
+      dash_ch_team_xg:     "xG squadra",
+      dash_ch_goals:       "Goal",
+      dash_ch_goals_low:   "goal",
+      dash_ch_xg_cum:      "xG cumulativo",
+      dash_ch_goal_cum:    "Goal cumulativi",
+      dash_ch_output_adj:  "Output adj",
+      dash_ch_team_boost:  "Team Boost",
+
+      dash_role_fwd_pl:    "Attaccanti",
+      dash_role_mid_pl:    "Centrocampisti",
+      dash_role_def_pl:    "Difensori",
+      dash_only:           "Solo",
+
+      /* footer condiviso */
+    },
+
+    en: {
+      /* nav comune */
+      nav_home:            "Homepage",
+      nav_dashboard:       "Dashboard",
+      nav_validation:      "Validation",
+      nav_methodology:     "Methodology",
+      nav_back_homepage:   "Back to Homepage",
+      nav_back_ranking:    "Back to ranking",
+      nav_back:            "Back",
+      nav_forward:         "Forward",
+      nav_lang_label:      "Language",
+
+      /* azioni / pulsanti comuni */
+      btn_search:          "Search",
+      btn_close:           "Close",
+      btn_compare:         "Compare",
+      btn_methodology:     "Methodology",
+      btn_explore:         "Explore dashboard",
+      btn_see_validation:  "See validation",
+      btn_read_method:     "Read methodology",
+
+      /* placeholder / messaggi */
+      ph_search_player:    "Search player…",
+      msg_loading:         "Loading…",
+      msg_no_data:         "No data available",
+      msg_no_results:      "No results",
+
+      /* termini dominio */
+      term_players:        "Players",
+      term_teams:          "Teams",
+      term_ranking:        "Ranking",
+      term_statistics:     "Statistics",
+      term_minutes:        "Minutes",
+      term_role:           "Role",
+      term_team:           "Team",
+      term_player:         "Player",
+      term_home:           "Home",
+      term_away:           "Away",
+      term_vs_top6:        "vs Top 6",
+      term_vs_strong:      "Strong Defenses",
+      term_total:          "Total",
+
+      /* HOMEPAGE */
+      hp_eyebrow:          "Football Analytics · Serie A 25/26",
+      hp_tagline:          "Data-driven Player Ranking Model",
+      hp_intro:            "A model designed to evaluate and rank Serie A players using independent performance metrics — corrected for opponent difficulty and stabilized with Bayesian Shrinkage. It is a descriptive index: it ranks, it does not predict. How I got there, and where it does not hold, is all in the validation page.",
+      hp_bullet_1:         "<strong>7 independent dimensions</strong> — output, buildup, centrality, boost, consistency (IQR-based), finishing and recent form, standardized with <strong>winsorized z-scores</strong>. The 5 scout modulators (AII, PRI, stability, form trend, EMI) feed TPI Pro",
+      hp_bullet_2:         "<strong>381 players · 38 matchdays · 5 contexts</strong> — Total, Home, Away, vs Top 6, vs Strong Defenses",
+      hp_bullet_3:         "<strong>Tested, including where it loses</strong> — every check with 95% bootstrap confidence intervals, including the out-of-sample comparison against trivial baselines: against raw per-90 output the TPI does not win",
+      hp_tag_xg:           "xG · xA · SOS-weighting",
+      hp_tag_bayes:        "Bayesian Shrinkage",
+      hp_tag_pro:          "TPI Pro — AII + PRI",
+      hp_tag_validated:    "Descriptive index",
+      hp_whats_inside:     "What's inside",
+      hp_card_dash_ttl:    "Scout Dashboard",
+      hp_card_dash_body:   "Interactive player rankings across 7 metrics, squad filter, head-to-head comparison up to 4 players, TPI radar and differential analysis. Fully responsive.",
+      hp_card_dash_lnk:    "Explore dashboard →",
+      hp_card_val_ttl:     "Statistical Validation",
+      hp_card_val_body:    "Checks reported exactly as they came out: comparison against trivial baselines, calibration, ablation of the 7 dimensions, predictivity by role, convergence and persistence.",
+      hp_card_val_lnk:     "See validation →",
+      hp_card_meth_ttl:    "Full Methodology",
+      hp_card_meth_body:   "Every index explained with formulas, rationale and interactive charts. From raw data pipeline to final TPI — all steps documented.",
+      hp_card_meth_lnk:    "Read methodology →",
+      hp_idx_section:      "System indices",
+      hp_idx_output_t:     "Output Adj / 90'",
+      hp_idx_output_s:     "(xG+xA)/min×90 weighted by SOS — corrects for opponent strength",
+      hp_idx_centr_t:      "Offensive Centrality",
+      hp_idx_centr_s:      "% of team production through the player — with Bayesian Shrinkage",
+      hp_idx_boost_t:      "Team Boost Ratio",
+      hp_idx_boost_s:      "Team xG WITH / WITHOUT — true value to the team",
+      hp_idx_cons_t:       "Consistency (IQR-based)",
+      hp_idx_cons_s:       "1 − IQR/median — robust to outlier matches, bounded [0,1]",
+      hp_idx_aii_t:        "AII — Age Impact Index",
+      hp_idx_aii_s:        "Gaussian peaking at 23 — rewards players entering their prime, not those already in it",
+      hp_idx_pri_t:        "PRI — Physical Reliability",
+      hp_idx_pri_s:        "Availability + injuries + severity — historical physical reliability",
+      hp_pro_new:          "New — TPI Pro",
+      hp_pro_ttl:          "TPI Pro — 7 dimensions + 5 modulators",
+      hp_pro_body:         "The classic TPI uses 7 offensive dimensions (output, buildup, centrality, boost, consistency, finishing, recent form). TPI Pro adds 5 modulators: <strong style=\"color:var(--teal)\">Age Impact Index (AII)</strong>, <strong style=\"color:var(--purp)\">Physical Reliability (PRI)</strong>, cross-context stability, form trend and <strong style=\"color:var(--orng)\">EMI</strong> — with base TPI between 55% and 65% depending on the age band, to preserve the main signal.",
+      hp_footer_season:    "Season 2025/26",
+      hp_footer_data:      "Data: FBref (Opta source) · Transfermarkt · SosFanta · PazzidiFanta",
+
+      /* VALIDAZIONE */
+      val_title:           "Model Validation",
+      val_subtitle:        "Five independent tests confirming the TPI is statistically valid.",
+      val_pearson:         "Pearson r vs Fantacalcio",
+      val_overlap:         "Top 10 Overlap",
+      val_backtest:        "Predictive Backtest",
+      val_aii_validation:  "AII Validation",
+      val_pri_validation:  "PRI Validation",
+      val_tpi_pro_coh:     "TPI vs TPI Pro Coherence",
+      val_interpretation:  "Interpretation",
+      val_limits:          "Limits",
+      val_low:             "Low",
+      val_consistent:      "Consistent",
+      val_notable_div:     "Notable divergences",
+      val_no_data_pro:     "No TPI Pro data",
+      val_start_mysql:     "Start MySQL for full backtest",
+      val_injuries:        "Injuries",
+      val_confidence:      "Confidence Score",
+      val_rmse:            "RMSE",
+      val_pro_players:     "TPI Pro Players",
+      val_aii_players:     "Players with AII",
+      val_pri_players:     "Players with PRI",
+      val_ax_tpi_classic:  "Classic TPI (7 dim)",
+      val_ax_tpi_pro:      "TPI Pro (7 dim + 5 mod)",
+      val_ax_tpi_tot:      "Total TPI",
+      val_ax_fanta:        "Fantacalcio rating",
+      val_ax_early:        "Output/90 — First half",
+      val_ax_late:         "Output/90 — Second half",
+      val_ax_aii:          "AII — Age Index",
+      val_ax_pri:          "PRI — Physical Reliability",
+
+      /* GUIDA */
+      guide_title:         "Complete Methodology Guide",
+      guide_subtitle:      "Every index, formula and design choice of Serie A Scout Index",
+      guide_chapter:       "Chapter",
+      guide_formula:       "Formula",
+      guide_how_calc:      "How it is calculated",
+      guide_components:    "Formula components",
+      guide_base_data:     "Base Data",
+      guide_how_populate:  "How to populate the data",
+      guide_age_curve:     "AII curve by age",
+      guide_age_age_idx:   "Age Impact Index by age band",
+      guide_age_band:      "Band",
+      guide_aff_phys:      "Physical Reliability",
+      guide_age_idx:       "Age Index",
+      guide_centrality:    "Offensive Centrality",
+      guide_consistency:   "Consistency",
+      guide_form_ewma:     "Form EWMA",
+      guide_big_match:     "Big match",
+      guide_finisher:      "Above-average finisher",
+
+      /* DASHBOARD */
+      dash_title:          "Scout Dashboard",
+      dash_filter_team:    "Team",
+      dash_filter_role:    "Role",
+      dash_all_teams:      "All",
+      dash_all_roles:      "All",
+      dash_role_gk:        "Goalkeeper",
+      dash_role_def:       "Defender",
+      dash_role_mid:       "Midfielder",
+      dash_role_fwd:       "Forward",
+      dash_role_gk_s:      "GK",
+      dash_role_def_s:     "DEF",
+      dash_role_mid_s:     "MID",
+      dash_role_fwd_s:     "FWD",
+      dash_leaderboard:    "Leaderboard",
+      dash_compare:        "Compare",
+      dash_compare_pool:   "Compare pool",
+      dash_compare_empty:  "Add players to compare",
+      dash_pick_player:    "Pick player",
+      dash_roster:         "Rest of the squad",
+      dash_insufficient:   "insufficient minutes for TPI",
+      dash_diff_modal:     "Δ Differential",
+      dash_radar:          "TPI Radar",
+      dash_overview:       "Overview",
+      dash_conversion:     "Conversion",
+      dash_trend:          "Trend",
+      dash_show_pro:       "Show TPI Pro",
+      dash_hide_pro:       "Hide TPI Pro",
+      dash_methodology:    "Methodology",
+      dash_kpi_xg90:       "xG / 90'",
+      dash_kpi_xa90:       "xA / 90'",
+      dash_kpi_goal90:     "Goals / 90'",
+      dash_kpi_sos:        "Opponent difficulty",
+      dash_ctx_solo_totale: "Available for the published hundred",
+      dash_img:            "Image",
+      dash_img_tip:        "Download the comparison as an image, ready to send",
+      dash_chip_attese:    "Above expectations",
+      dash_m_attese:       "Above expectations",
+      dash_attese_tip:     "How he performs this season against his own two-season baseline",
+      dash_attese_note:    "This season's TPI minus the same player's TPI across two seasons. Above zero: he is delivering more than his history suggested. Players with no history do not appear: without a past there is no expectation to beat.",
+      dash_qualificati:    "qualified players",
+      dash_hero_altra:     "These figures are the published season; below you are looking at another view.",
+      dash_stag_errore:    "Could not load that season: ",
+      dash_contratto:      "contract",
+      dash_contratto_tip:  "Contract expiry (Transfermarkt). It does not enter the index.",
+      dash_scad:           "Expiring",
+      dash_scad_tip:       "Only players whose contract expires within twelve months",
+      dash_valore:         "value",
+      dash_valore_tip:     "Transfermarkt market value. It does not enter the index: the validation uses it as a baseline to beat.",
+      dash_team_page:      "team page",
+      dash_all:            "All qualified",
+      dash_all_tip:        "Also load the qualified players beyond the first hundred: the top-100 cut favours the teams that produce most",
+      dash_all_loading:    "Loading...",
+      dash_all_done:       "All qualified",
+      dash_all_done_tip:   "All qualified players loaded. Full profiles stay with the published hundred.",
+      dash_all_error:      "Could not load the full list: ",
+      dash_leggero:        "This one comes from the full list: score, dimensions and overall context are here, the per-matchday series are not. Profiles with charts are the published hundred.",
+      dash_csv_view:       "CSV",
+      dash_csv_view_tip:   "Download the list you are looking at as CSV, filters applied",
+      dash_csv_all:        "all 351",
+      dash_csv_all_tip:    "The full file the engine writes: 351 players, 49 columns",
+      dash_pct_lab:        "percentile",
+      dash_pct_tip:        "Percentile: ahead of PC% of the TOT qualified players",
+      dash_kpi_finish:     "Finishing",
+      dash_kpi_conv:       "Conversion rate",
+      dash_compare_with:   "Compare with",
+      dash_advantage:      "advantage",
+      dash_disadvantage:   "disadvantage",
+      dash_z_explain:      "Values in z-score (σ from league mean).",
+      dash_winter_signing: "Winter signing",
+
+      /* dashboard — metric filter chips */
+      dash_chip_tpi:       "TPI",
+      dash_chip_prospect:  "Young ★",
+      dash_chip_output:    "Output",
+      dash_chip_cen:       "Centrality",
+      dash_chip_boo:       "Boost",
+      dash_chip_con:       "Consistency",
+      dash_chip_conv:      "G/xG",
+      dash_btn_compare:    "Compare",
+      dash_search_np:      "Name, team or role…",
+      dash_filter_by_team: "Filter by team",
+      /* dashboard — metric titles (leaderboard heading) */
+      dash_m_tpi:          "Total TPI",
+      dash_m_prospect:     "Young ★ — Prospect Score",
+      dash_m_out:          "Adj Offensive Output / 90'",
+      dash_m_cen:          "Offensive Centrality",
+      dash_m_boo:          "Team Boost Ratio",
+      dash_m_con:          "Consistency",
+      dash_m_conv:         "G / xG — Conversion",
+      /* dashboard — leaderboard rows / states */
+      dash_btn_profile:    "Profile",
+      dash_btn_diff:       "Compare with…",
+      dash_no_filter_data: "No data available for this filter",
+      dash_roster_note:    "players (insufficient minutes for TPI)",
+      dash_off_profile:    "Offensive profile",
+      dash_filter_hot:     "In form",
+      dash_filter_cold:    "Off form",
+      dash_filter_form:    "Filter by form:",
+      dash_form:           "Form",
+      dash_form_hot:       "in form",
+      dash_form_cold:      "off form",
+      dash_form_stable:    "stable",
+      dash_goals_short:    "goals",
+      dash_vs_season:      "vs season",
+      dash_pro_badge:      "New — TPI Pro",
+      dash_pro_ttl:        "TPI Pro: base TPI + 5 scout modulators",
+      dash_pro_body:       "The <strong>classic TPI</strong> uses 7 offensive dimensions (output, buildup, centrality, boost, consistency, finishing, recent form). <strong>TPI Pro</strong> = 0.65·TPI + 0.10·<span style=\"color:var(--teal)\">scout AII</span> + 0.07·<span style=\"color:var(--purp)\">PRI</span> + 0.07·cross-context stability + 0.05·form trend + 0.06·<span style=\"color:var(--orng)\">EMI</span>. The <strong>scout AII</strong> peaks at 23 (entering the prime). <strong>EMI</strong> (Early Momentum Index) measures who performs ABOVE the age expectation: separates prospects that would otherwise share the same AII at 21–22 — a TOP youngster (Nico Paz z+1.7) vs an in-line one (Ferguson z+0.9).",
+      dash_role_full_POR:  "Goalkeeper",
+      dash_role_full_DIF:  "Defender",
+      dash_role_full_CEN:  "Midfielder",
+      dash_role_full_ATT:  "Forward",
+      dash_remove_filter:  "Remove filter",
+      dash_winter_legend:  "❄ = winter signing (reduced minutes threshold)",
+      dash_meth_calc:      "📐 Methodology & Calculations",
+      dash_meth_sub:       "How the TPI works",
+      dash_no_role_data:   "No data for this role.",
+      dash_not_analyzed:   "Not analyzed (insufficient minutes)",
+      dash_max_compare:    "Maximum 4 players.",
+      dash_prospect_note:  "Players ≤24 only. Score = TPI × AII (Age Impact Index). Rewards those with high impact already at a young age.",
+      dash_tab_conv:       "Goals vs xG",
+      dash_tab_trend:      "xG Trend",
+      dash_tab_radar:      "Radar",
+      dash_pro_mean6:      "0.55–0.65·TPI + modulators, weights by age band",
+      dash_pro_gauss:      "Gaussian, peak at 23 (entering prime) + growth bonus",
+      dash_pro_avail:      "Availability + injuries + severity",
+      dash_pro_dims:       "TPI · scout AII · PRI · Ctx stability · Form trend · EMI",
+      dash_zdim:           "Dimension z-scores",
+      dash_zdim_player:    "Dimension z-scores for the selected player (Total)",
+      dash_meth_title:     "Methodology & Calculations",
+      dash_meth_intro:     "TPI measures real offensive impact through 7 dimensions: quality (output_adj), buildup, centrality, boost, consistency, finishing and recent form. Dynamic Bayesian shrinkage K for substitutes/low-games; winter-aware availability penalty (Malen 90% avail intact, De Bruyne 47% penalized); 4-factor confidence v2; SOS-weighting normalizes difficulty.",
+      dash_js_error:       "JS error:",
+      dash_players_ranked: "players ranked",
+      dash_matchdays:      "matchdays",
+      dash_indep_kpis:     "independent KPIs",
+      dash_teams_word:     "teams",
+      dash_players_analyzed:"players analyzed",
+      dash_ctx5:           "TPI across the 5 contexts",
+      dash_goals_vs_xg_cmp:"Goals vs xG compared",
+      dash_zscore_off:     "Offensive z-score",
+      dash_form_match:     "Form — xG+xA/90 per match (EWMA α=0.3)",
+      dash_goals_vs_xg_match:"Goals vs xG per match",
+      dash_season_cumul:   "Season cumulative",
+      dash_team_xg_gw:     "Team xG per matchday (with / without / strong defenses)",
+      dash_dimension:      "Dimension",
+      dash_aii_age:        "AII — Age",
+      dash_pri_phys:       "PRI — Physical",
+      dash_zr_output:      "Output adj/90",
+      dash_zr_boost:       "Team boost",
+      dash_ov_zcap:        "0 = the average player in his role. Nothing goes past ±3: one freak match does not count double.",
+      dash_ctx_graycap:    "Grey = fewer matches than the minimum (insufficient data)",
+      dash_form_few:       "⚠ Fewer than 5 matches: trend not computed",
+      dash_v2_req:         "⚠ Requires data_nascita in DB (Age) and t_infortuni filled (Reliability)",
+      dash_conv_insuf:     "Insufficient data (xG < 0.5)",
+      dash_conv_over:      "Above-average finisher",
+      dash_conv_under:     "Wastes chances",
+      dash_conv_inline:    "In line with xG expectations",
+      dash_conv_ratio_ttl: "Conversion Ratio G/xG",
+      dash_overperf_cap:   "Above the dashed line = over-performance vs xG",
+      dash_with_player:    "With the player",
+      dash_vs_strong_def:  "vs Strong Defenses",
+      dash_vs_weak_def:    "vs Weak Defenses",
+      dash_matches_without:"matches without",
+      dash_trend_caption:  "Dashed line = average xG in matches without the player.",
+      dash_radar_caption:  "Each spoke says how far above or below his role average he sits. The rim is the cap: nothing goes past ±3.",
+      dash_ch_output_match:"Output/match",
+      dash_ch_with:        "With",
+      dash_ch_without:     "Without",
+      dash_ch_avg_with:    "Avg with",
+      dash_ch_matchday:    "Matchday",
+      dash_ch_team_xg:     "Team xG",
+      dash_ch_goals:       "Goals",
+      dash_ch_goals_low:   "goals",
+      dash_ch_xg_cum:      "Cumulative xG",
+      dash_ch_goal_cum:    "Cumulative Goals",
+      dash_ch_output_adj:  "Output adj",
+      dash_ch_team_boost:  "Team Boost",
+
+      dash_role_fwd_pl:    "Forwards",
+      dash_role_mid_pl:    "Midfielders",
+      dash_role_def_pl:    "Defenders",
+      dash_only:           "Only",
+
+      /* footer condiviso */
+    }
+  };
+
+  /* ── STATE & API ────────────────────────────────────────── */
+  const SUPPORTED = ["it", "en"];
+
+  /* La lingua di partenza la dichiara la pagina, in <html lang>, e il motore
+     la scrive dal config: una per campionato. Prima era "it" fissa qui dentro
+     e il ripiego guardava la lingua del browser, per cui il sito sulla Premier
+     League si apriva in italiano davanti a chiunque avesse il browser in
+     italiano — cioe' davanti a me, e a chiunque a cui lo mostro da qui.
+     Ora vince quello che il lettore ha scelto, e in mancanza la lingua del
+     sito: sulla Serie A l'italiano, sulla Premier l'inglese. Il selettore
+     resta dov'e', quindi la scelta e' sempre a un clic. */
+  const BASE = (document.documentElement.getAttribute("lang") || "it").slice(0, 2);
+  const DEFAULT_LANG = SUPPORTED.includes(BASE) ? BASE : "it";
+
+  function detectLang() {
+    let stored = null;
+    try { stored = localStorage.getItem("lang"); } catch (e) { /* storage negato */ }
+    if (stored && SUPPORTED.includes(stored)) return stored;
+    return DEFAULT_LANG;
+  }
+
+  let currentLang = detectLang();
+
+  function t(key) {
+    return I18N[currentLang]?.[key] ?? I18N[DEFAULT_LANG]?.[key] ?? key;
+  }
+
+  function getLang() { return currentLang; }
+
+  function setLang(lang) {
+    if (!SUPPORTED.includes(lang)) return;
+    currentLang = lang;
+    try { localStorage.setItem("lang", lang); } catch (e) {}
+    document.documentElement.lang = lang;
+    applyI18n(document);
+    document.dispatchEvent(new CustomEvent("i18n:changed", { detail: { lang } }));
+  }
+
+  /* ── DOM HYDRATION ──────────────────────────────────────── */
+  function applyI18n(root) {
+    root = root || document;
+    root.querySelectorAll("[data-i18n]").forEach(el => {
+      const k = el.getAttribute("data-i18n");
+      if (k) el.textContent = t(k);
+    });
+    root.querySelectorAll("[data-i18n-html]").forEach(el => {
+      const k = el.getAttribute("data-i18n-html");
+      if (k) el.innerHTML = t(k);
+    });
+    root.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+      const k = el.getAttribute("data-i18n-placeholder");
+      if (k) el.setAttribute("placeholder", t(k));
+    });
+    root.querySelectorAll("[data-i18n-title]").forEach(el => {
+      const k = el.getAttribute("data-i18n-title");
+      if (k) el.setAttribute("title", t(k));
+    });
+    root.querySelectorAll("[data-i18n-aria-label]").forEach(el => {
+      const k = el.getAttribute("data-i18n-aria-label");
+      if (k) el.setAttribute("aria-label", t(k));
+    });
+    /* contenuto bilingue inline (per testo generato con numeri già dentro):
+       data-it="..." data-en="..." → innerHTML nella lingua corrente.
+       Usato dalle pagine generate (validazione, dashboard) dove la prosa
+       contiene valori dinamici e non può passare dal dizionario a chiavi. */
+    root.querySelectorAll("[data-it][data-en]").forEach(el => {
+      const html = el.getAttribute(currentLang === "en" ? "data-en" : "data-it");
+      if (html != null) el.innerHTML = html;
+    });
+    /* Stessa cosa per il tooltip: serve dove il testo del title porta un
+       numero calcolato dal motore. Con la sola chiave a dizionario quel numero
+       era una costante scritta a mano, e restava indietro. */
+    root.querySelectorAll("[data-title-it][data-title-en]").forEach(el => {
+      const v = el.getAttribute(currentLang === "en" ? "data-title-en" : "data-title-it");
+      if (v != null) el.setAttribute("title", v);
+    });
+    /* highlight switcher active button */
+    document.querySelectorAll(".i18n-switch [data-set-lang]").forEach(b => {
+      b.classList.toggle("active", b.getAttribute("data-set-lang") === currentLang);
+    });
+  }
+
+  /* ── SWITCHER UI ────────────────────────────────────────── */
+  function injectSwitcherStyles() {
+    if (document.getElementById("i18n-style")) return;
+    /* Lo switcher e' l'unico elemento che lo stesso file monta su tutte e cinque
+       le pagine: se il suo stile sta qui, non puo' divergere. Prima usciva in
+       scatola con l'attiva in blu iOS — un colore che il sito non ha — e le
+       dashboard se lo riscrivevano addosso, quindi la stessa pagina cambiava
+       aspetto a seconda di dove la aprivi. Ora e' gia' nella palette: due sigle
+       in mono, l'attiva in ambra come ogni altro stato corrente. */
+    const css = `
+      [data-i18n-switcher]{display:inline-flex;align-items:center}
+      .i18n-switch{display:inline-flex;align-items:center;gap:2px;
+        border:0;border-radius:0;background:none;height:auto;
+        font-family:"JetBrains Mono","Cascadia Mono",ui-monospace,monospace}
+      .i18n-switch button{background:none;border:0;color:rgba(233,240,236,.42);
+        font-family:inherit;font-size:10px;font-weight:500;letter-spacing:.12em;
+        padding:3px 5px;border-radius:3px;
+        cursor:pointer;transition:color .16s;text-transform:uppercase}
+      .i18n-switch button:hover{color:#ECF2EE;background:none}
+      .i18n-switch button.active{color:#FFB020;background:none}
+      .i18n-switch button + button{border-left:0}
+      /* Sul telefono le due sigle stanno accanto a cinque voci di menu: il
+         posto che cedono qui e' quello che serve all'ultima voce per restare
+         dentro lo schermo. Sta in questo file e non nei CSS delle pagine
+         perche' e' lo switcher a doverlo sapere, non ognuna delle cinque. */
+      @media(max-width:440px){
+        .i18n-switch{gap:0}
+        .i18n-switch button{font-size:9px;letter-spacing:.08em;padding:3px 3px}
+      }
+    `;
+    const s = document.createElement("style");
+    s.id = "i18n-style"; s.textContent = css;
+    document.head.appendChild(s);
+  }
+
+  function mountSwitcher(slot) {
+    if (!slot) return;
+    slot.innerHTML = "";
+    const wrap = document.createElement("div");
+    wrap.className = "i18n-switch";
+    wrap.setAttribute("role", "group");
+    wrap.setAttribute("aria-label", t("nav_lang_label"));
+    SUPPORTED.forEach(code => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = code.toUpperCase();
+      b.setAttribute("data-set-lang", code);
+      if (code === currentLang) b.classList.add("active");
+      b.addEventListener("click", () => setLang(code));
+      wrap.appendChild(b);
+    });
+    slot.appendChild(wrap);
+  }
+
+  function mountAllSwitchers() {
+    injectSwitcherStyles();
+    document.querySelectorAll("[data-i18n-switcher]").forEach(mountSwitcher);
+  }
+
+  /* ── INIT ───────────────────────────────────────────────── */
+  function init() {
+    document.documentElement.lang = currentLang;
+    mountAllSwitchers();
+    applyI18n(document);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+
+  /* expose public API */
+  window.SerieAi18n = { t, setLang, getLang, applyI18n, mountAllSwitchers };
+})();

@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+
+# Pagine di prova usate per guardare il sito a viewport diversi.
+_*.html
