@@ -31,7 +31,7 @@ place, rather than quietly publishing thirteen and calling it fifteen.
 | [Ranking](https://raffaeleciccone-analyst.github.io/premier-league-index/dashboard_premier_league.html) | Every qualified player, five contexts, head-to-head |
 | [Validation](https://raffaeleciccone-analyst.github.io/premier-league-index/validazione.html) | What holds up and what does not, with confidence intervals |
 | [Method](https://raffaeleciccone-analyst.github.io/premier-league-index/guida_completa.html) | Every formula the engine actually runs |
-| [Data (CSV)](https://raffaeleciccone-analyst.github.io/premier-league-index/premier_league_tpi_2025-26.csv) | Every qualified player, 49 columns, written by the engine on every run |
+| [Data (CSV)](https://raffaeleciccone-analyst.github.io/premier-league-index/premier_league_tpi_2025-26.csv) | Every qualified player, every column the engine writes, refreshed on every run |
 
 **Seven dimensions** — output, buildup, centrality, team boost, consistency, finishing,
 recent form. **Five contexts** — overall, home, away, vs top six, vs the tightest defences.
