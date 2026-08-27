@@ -1,8 +1,8 @@
-# Premier League Scout Index
+# Premier League Index
 
 **A descriptive ranking model for Premier League 2025/26 players.**
 
-## → [Open the site](https://raffaeleciccone-analyst.github.io/premier-league-scout-index/)
+## → [Open the site](https://raffaeleciccone-analyst.github.io/premier-league-index/)
 
 ---
 
@@ -27,11 +27,11 @@ place, rather than quietly publishing thirteen and calling it fifteen.
 
 | Page | What it is |
 |---|---|
-| [Homepage](https://raffaeleciccone-analyst.github.io/premier-league-scout-index/) | What the index is, who is on top right now |
-| [Ranking](https://raffaeleciccone-analyst.github.io/premier-league-scout-index/dashboard_premier_league.html) | Every qualified player, five contexts, head-to-head |
-| [Validation](https://raffaeleciccone-analyst.github.io/premier-league-scout-index/validazione.html) | What holds up and what does not, with confidence intervals |
-| [Method](https://raffaeleciccone-analyst.github.io/premier-league-scout-index/guida_completa.html) | Every formula the engine actually runs |
-| [Data (CSV)](https://raffaeleciccone-analyst.github.io/premier-league-scout-index/premier_league_tpi_2025-26.csv) | Every qualified player, 49 columns, written by the engine on every run |
+| [Homepage](https://raffaeleciccone-analyst.github.io/premier-league-index/) | What the index is, who is on top right now |
+| [Ranking](https://raffaeleciccone-analyst.github.io/premier-league-index/dashboard_premier_league.html) | Every qualified player, five contexts, head-to-head |
+| [Validation](https://raffaeleciccone-analyst.github.io/premier-league-index/validazione.html) | What holds up and what does not, with confidence intervals |
+| [Method](https://raffaeleciccone-analyst.github.io/premier-league-index/guida_completa.html) | Every formula the engine actually runs |
+| [Data (CSV)](https://raffaeleciccone-analyst.github.io/premier-league-index/premier_league_tpi_2025-26.csv) | Every qualified player, 49 columns, written by the engine on every run |
 
 **Seven dimensions** — output, buildup, centrality, team boost, consistency, finishing,
 recent form. **Five contexts** — overall, home, away, vs top six, vs the tightest defences.
