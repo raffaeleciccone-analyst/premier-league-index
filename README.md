@@ -1,6 +1,6 @@
 # Premier League Index
 
-**A descriptive ranking model for Premier League 2025/26 players.**
+**A descriptive ranking model for Premier League players.**
 
 ## → [Open the site](https://raffaeleciccone-analyst.github.io/premier-league-index/)
 
@@ -41,12 +41,14 @@ The top-100 cut is not a neutral filter: the index rewards players who produce i
 produce, so the list leans towards the sides at the top of the table. Players beyond the hundred
 come without the per-matchday series, and the page says so.
 
-Two seasons are on file — 2025/26 and 2024/25 — plus a combined view across both. The combined
-view is not a season: it is the same measure over more minutes, so the estimates are steadier and
-the ranking belongs to no single year. The page says that too.
+Every season the engine has measured stays on file, in the selector above the ranking, plus a
+combined view across all of them. The combined view is not a season: it is the same measure over
+more minutes, so the estimates are steadier and the ranking belongs to no single year. The page
+says that too — and when a season is still being played, it says how many matchdays it has.
 
-Counts are deliberately absent from this file. They live on the pages, which are generated from
-the data, so nothing here can go stale behind them.
+Counts and season names are deliberately absent from this file. They live on the pages, which
+are generated from the data, so nothing here can go stale behind them. The one exception is the
+CSV link above, which has to name a file.
 
 ---
 
