@@ -55,7 +55,7 @@ CSV link above, which has to name a file.
 ### The engine
 
 The model, the validation suite and the data-quality machinery live in
-**[serie-a-index-engine](https://github.com/raffaeleciccone-analyst/serie-a-index-engine)**.
+**[football-index-engine](https://github.com/raffaeleciccone-analyst/football-index-engine)**.
 This repository holds the published site only: HTML, the payloads the pages read, and the CSV.
 
 Everything on these pages is generated. No number is typed by hand, which is the only way the
