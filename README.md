@@ -10,16 +10,16 @@ The TPI ranks qualified Premier League players by attacking impact: xG and xA ad
 opponent difficulty, seven dimensions, one ranking. It is **descriptive** — it ranks,
 it does not predict — and the checks say where it loses too.
 
-### Same engine, second league
+### One engine, two leagues
 
-This site is not a second project. It is the same engine as the
-[Serie A Scout Index](https://raffaeleciccone-analyst.github.io/serie-a-index/), pointed at a
-different competition: the league is a parameter, like the season. No fork, no second copy to
-keep in step — one correction stays one correction.
+One engine generates this site and the
+[Serie A Scout Index](https://raffaeleciccone-analyst.github.io/serie-a-index/): the league is a
+parameter, like the season. No fork, no second copy to keep in step — one correction stays one
+correction.
 
 That matters for reading the two indices side by side. The seven weights are a declared choice,
-not a fit to Italian data, so they are applied identically here; what changes is the data, the
-site's starting language, and the checks that cannot be run outside Italy.
+not a fit to either league's data, so they are applied identically in both; what changes is the
+data, the site's starting language, and the checks that cannot be run outside Italy.
 
 Those checks are **declared, not omitted**. Two of the fifteen lean on Italian-only sources — a
 fantasy-football rating and a hand-written reference list — and the validation page says so in
