@@ -2,25 +2,25 @@
  "n_verifiche": 15,
  "n_giocatori": 343,
  "prima_meta_vs_seconda": {
-  "rho": 0.803,
-  "n": 517,
+  "rho": 0.797,
+  "n": 529,
   "ic": [
-   0.76,
-   0.836
+   0.753,
+   0.835
   ],
   "cosa_misura": "output offensivo grezzo, non il TPI composito"
  },
  "decili": {
   "monotonia_rho": 0.976,
-  "errore_calibrazione": 0.029
+  "errore_calibrazione": 0.025
  },
  "convergenza": {
   "prima_giornata": 3,
-  "rho_prima": 0.233,
-  "rho_ultima": 0.967
+  "rho_prima": 0.22,
+  "rho_ultima": 0.943
  },
  "a_livello_di_squadra": {
-  "r": 0.726,
+  "r": 0.779,
   "n": 20
  },
  "overlap_whoscored_pct": null,
